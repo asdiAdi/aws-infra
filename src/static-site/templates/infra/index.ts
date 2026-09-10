@@ -11,8 +11,12 @@ new StaticSiteStack(app, "StaticSiteStack", {
   staticSite: {
     secondLevelDomain: "example.com",
     subDomain: "www",
-    githubName: "my-org",
-    githubRepo: "my-repo",
+    github: {
+      owner: "owner",
+      ownerId: "12345",
+      repo: "repo",
+      repoId: "12345",
+    },
     // tableName: "dynamodb_table_name"
   },
 });
