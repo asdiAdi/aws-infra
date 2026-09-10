@@ -1,0 +1,77 @@
+{
+  "name": "@asdi/aws-infra",
+  "version": "0.1.0",
+  "description": "Reusable AWS constructs for deployments",
+  "homepage": "https://github.com/asdiAdi/aws-infra#readme",
+  "bugs": {
+    "url": "https://github.com/asdiAdi/aws-infra/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/asdiAdi/aws-infra.git"
+  },
+  "license": "MIT",
+  "author": "asdiAdi",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "aws-infra": "./bin/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "**/templates",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "aws",
+    "aws-cdk",
+    "cdk",
+    "constructs",
+    "infrastructure"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc -p tsconfig.build.json -w",
+    "test": "jest --passWithNoTests",
+    "prepublishOnly": "npm run clean && npm run build",
+    "cdk": "cdk",
+    "pack:dry": "npm run build && npm pack --dry-run"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.267.0",
+    "constructs": "^10.5.0"
+  },
+  "peerDependencies": {
+    "aws-cdk-lib": "^2.267.0",
+    "constructs": "^10.5.0"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.15.0",
+    "@swc/jest": "^0.2.39",
+    "@types/jest": "^30",
+    "@types/node": "^24.10.1",
+    "jest": "^30",
+    "aws-cdk": "2.1140.0",
+    "tsx": "^4.23.0",
+    "typescript": "~7.0.2"
+  }
+}

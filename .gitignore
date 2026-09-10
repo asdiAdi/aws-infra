@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+cdk.out/
+.cdk.staging/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
