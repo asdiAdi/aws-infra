@@ -15,10 +15,13 @@ export interface StaticSiteProps {
   subDomain: string;
   /** Apex domain with an existing Route53 hosted zone, e.g. "example.com". */
   secondLevelDomain: string;
-  /** GitHub org or user that owns the repo, e.g. "my-org". */
-  githubName: string;
-  /** GitHub repo name allowed to assume the deploy role, e.g. "my-repo". */
-  githubRepo: string;
+  /** Github repo credentials */
+  github: {
+    owner: string;
+    ownerId: string;
+    repo: string;
+    repoId: string;
+  };
   /** Optional existing DynamoDB table name to register site outputs. Omit if unused. */
   tableName?: string;
 }
@@ -110,8 +113,7 @@ class StaticSiteConstruct extends Construct {
       constructId,
       domainName,
       account,
-      props.githubName,
-      props.githubRepo,
+      props.github,
       deployPolicy,
     );
 
@@ -315,15 +317,19 @@ class StaticSiteConstruct extends Construct {
     constructId: string,
     domainName: string,
     awsId: string,
-    name: string,
-    repo: string,
+    github: {
+      owner: string;
+      ownerId: string;
+      repo: string;
+      repoId: string;
+    },
     deployPolicy: iam.ManagedPolicy,
   ): iam.Role {
     const GITHUB_OIDC_PROVIDER_URL = "token.actions.githubusercontent.com";
     const GITHUB_OIDC_AUDIENCE = "sts.amazonaws.com";
 
     const oidcProviderArn = `arn:aws:iam::${awsId}:oidc-provider/token.actions.githubusercontent.com`;
-    const sub = `repo:${name}/${repo}:*`;
+    const sub = `repo:${github.owner}@${github.ownerId}/${github.repo}@${github.repoId}:ref:refs/heads/main`;
 
     const roleName = `github-deploy-${constructId
       .toLowerCase()
@@ -332,7 +338,7 @@ class StaticSiteConstruct extends Construct {
 
     const role = new iam.Role(this, `${constructId}-GithubDeployRole`, {
       roleName,
-      description: `GitHub Actions deploy role for ${domainName} (${name}/${repo})`,
+      description: `GitHub Actions deploy role for ${domainName} (${github.owner}/${github.repo})`,
       assumedBy: new iam.FederatedPrincipal(
         oidcProviderArn,
         {

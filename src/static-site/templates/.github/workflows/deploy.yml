@@ -36,24 +36,14 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Check infra changes
-        id: infra_check
-        run: |
-          if git diff --quiet HEAD~1 HEAD -- package.json package-lock.json cdk.json infra/; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Run CDK Deploy
-        if: steps.infra_check.outputs.changed == 'true'
         run: npx cdk deploy --require-approval never
 
       - name: Build the App
         run: npm run build
 
       - name: Sync static files to S3
-        run: aws s3 sync out/ s3://${{ secrets.S3_BUCKET }} --delete
+        run: aws s3 sync dist/ s3://${{ secrets.S3_BUCKET }} --delete
 
       - name: Invalidate CloudFront Cache
         run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
