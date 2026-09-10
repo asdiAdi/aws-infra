@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/asdiAdi/aws-infra.git"
+    "url": "git+https://github.com/asdiAdi/aws-infra.git"
   },
   "license": "MIT",
   "author": "asdiAdi",
@@ -16,7 +16,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "aws-infra": "./bin/cli.js"
+    "aws-infra": "bin/cli.js"
   },
   "exports": {
     ".": {
