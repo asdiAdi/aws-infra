@@ -3,9 +3,10 @@ import * as cdk from "aws-cdk-lib";
 
 const app = new cdk.App();
 
-new StaticSiteStack(app, "StaticSiteStack", {
+// make sure to change the id to a unique string
+new StaticSiteStack(app, "id", {
   env: {
-    account: "123456789012",
+    account: process.env.CDK_DEFAULT_ACCOUNT!,
     region: "us-east-1", //default,
   },
   staticSite: {
