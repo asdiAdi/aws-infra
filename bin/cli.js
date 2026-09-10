@@ -9,18 +9,20 @@ const DEV_DEPS = ["tsx"];
 
 function installDeps(cwd) {
   if (!fs.existsSync(path.join(cwd, "package.json"))) {
-    execSync("npm init -y", { cwd, stdio: "inherit" });
+    console.log("No package.json found, running npm init -y...");
+    execSync("npm init -y --silent", { cwd, stdio: "pipe" });
   }
+  console.log("Installing dependencies...");
   try {
-    execSync(`npm install ${DEPS.join(" ")} --force`, {
+    execSync(`npm install ${DEPS.join(" ")} --force --no-audit --no-fund --loglevel=error`, {
       cwd,
-      stdio: "inherit",
+      stdio: "pipe",
     });
-    execSync(`npm install -D ${DEV_DEPS.join(" ")} --force`, {
+    execSync(`npm install -D ${DEV_DEPS.join(" ")} --force --no-audit --no-fund --loglevel=error`, {
       cwd,
-      stdio: "inherit",
+      stdio: "pipe",
     });
-    console.log("Dependencies installed successfully.");
+    console.log("Dependencies installed.");
   } catch (err) {
     console.error("Failed to install dependencies.");
     process.exit(1);
@@ -39,13 +41,39 @@ function templateDir() {
   return CANDIDATES[0];
 }
 
+function copyFile(from, to, force) {
+  if (fs.existsSync(to) && !force) {
+    console.warn(`Skipped ${path.relative(process.cwd(), to)} (already exists, use --force to overwrite).`);
+    return false;
+  }
+  const overwritten = fs.existsSync(to);
+  fs.mkdirSync(path.dirname(to), { recursive: true });
+  fs.copyFileSync(from, to);
+  console.log(`${overwritten ? "Overwrote" : "Created"} ${path.relative(process.cwd(), to)}.`);
+  return true;
+}
+
+function copyDir(fromDir, toDir, force) {
+  for (const entry of fs.readdirSync(fromDir, { withFileTypes: true })) {
+    const from = path.join(fromDir, entry.name);
+    const to = path.join(toDir, entry.name);
+    if (entry.isDirectory()) {
+      copyDir(from, to, force);
+    } else {
+      copyFile(from, to, force);
+    }
+  }
+}
+
 function main() {
-  const cmd = process.argv.slice(2).find((a) => !a.startsWith("-"));
-  const help = process.argv.includes("--help") || process.argv.includes("-h");
+  const args = process.argv.slice(2);
+  const cmd = args.find((a) => !a.startsWith("-"));
+  const help = args.includes("--help") || args.includes("-h");
+  const force = args.includes("--force");
 
   if (help || cmd === "help" || cmd === undefined) {
     console.log(
-      "Usage: npx @asdi/aws-infra <command>\n\nCommands:\n  static-site   Scaffold static site\n  list          List templates"
+      "Usage: npx @asdi/aws-infra <command> [options]\n\nCommands:\n  static-site   Scaffold static site\n  list          List templates\n\nOptions:\n  --force       Overwrite existing scaffolded files\n  -h, --help    Show this help"
     );
     return;
   }
@@ -69,13 +97,12 @@ function main() {
     }
   }
 
-  fs.mkdirSync(path.join(cwd, "infra"), { recursive: true });
-  fs.copyFileSync(path.join(from, "infra", "index.ts"), path.join(cwd, "infra", "index.ts"));
-  fs.copyFileSync(path.join(from, "cdk.json"), path.join(cwd, "cdk.json"));
+  copyFile(path.join(from, "infra", "index.ts"), path.join(cwd, "infra", "index.ts"), force);
+  copyFile(path.join(from, "cdk.json"), path.join(cwd, "cdk.json"), force);
 
   const githubFrom = path.join(from, ".github");
   if (fs.existsSync(githubFrom)) {
-    fs.cpSync(githubFrom, path.join(cwd, ".github"), { recursive: true });
+    copyDir(githubFrom, path.join(cwd, ".github"), force);
   }
 
   installDeps(cwd);

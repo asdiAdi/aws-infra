@@ -1,6 +1,6 @@
 {
   "name": "@asdi/aws-infra",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Reusable AWS constructs for deployments",
   "homepage": "https://github.com/asdiAdi/aws-infra#readme",
   "bugs": {
