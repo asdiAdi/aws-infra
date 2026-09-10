@@ -2,6 +2,30 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { execSync } = require("node:child_process");
+
+const DEPS = ["@asdi/aws-infra", "aws-cdk-lib"];
+const DEV_DEPS = ["tsx"];
+
+function installDeps(cwd) {
+  if (!fs.existsSync(path.join(cwd, "package.json"))) {
+    execSync("npm init -y", { cwd, stdio: "inherit" });
+  }
+  try {
+    execSync(`npm install ${DEPS.join(" ")} --force`, {
+      cwd,
+      stdio: "inherit",
+    });
+    execSync(`npm install -D ${DEV_DEPS.join(" ")} --force`, {
+      cwd,
+      stdio: "inherit",
+    });
+    console.log("Dependencies installed successfully.");
+  } catch (err) {
+    console.error("Failed to install dependencies.");
+    process.exit(1);
+  }
+}
 
 const CANDIDATES = [
   path.join(__dirname, "../src/static-site/templates"),
@@ -53,6 +77,8 @@ function main() {
   if (fs.existsSync(githubFrom)) {
     fs.cpSync(githubFrom, path.join(cwd, ".github"), { recursive: true });
   }
+
+  installDeps(cwd);
 }
 
 try {
