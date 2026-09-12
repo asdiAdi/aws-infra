@@ -22,6 +22,7 @@ export interface StaticSiteProps {
     repo: string;
     repoId: string;
     branch: string;
+    environment?: string;
   };
   /** Optional existing DynamoDB table name to register site outputs. Omit if unused. */
   tableName?: string;
@@ -324,15 +325,20 @@ class StaticSiteConstruct extends Construct {
       repo: string;
       repoId: string;
       branch: string;
+      environment?: string;
     },
     deployPolicy: iam.ManagedPolicy,
   ): iam.Role {
     const GITHUB_OIDC_PROVIDER_URL = "token.actions.githubusercontent.com";
     const GITHUB_OIDC_AUDIENCE = "sts.amazonaws.com";
+    const GITHUB_REFS = `ref:refs/heads/${github.branch}`;
+    const GITHUB_ENVIRONMENT = `environment:${github.environment}`;
+
+    const suffix = github.environment ? GITHUB_ENVIRONMENT : GITHUB_REFS;
+    const oldSub = `repo:${github.owner}/${github.repo}:${suffix}`;
+    const sub = `repo:${github.owner}@${github.ownerId}/${github.repo}@${github.repoId}:${suffix}`; // july 15 update
 
     const oidcProviderArn = `arn:aws:iam::${awsId}:oidc-provider/token.actions.githubusercontent.com`;
-    const sub = `repo:${github.owner}@${github.ownerId}/${github.repo}@${github.repoId}:ref:refs/heads/${github.branch}`;
-
     const roleName = `github-deploy-${constructId
       .toLowerCase()
       .replace(/\./g, "-")
@@ -348,7 +354,7 @@ class StaticSiteConstruct extends Construct {
             [`${GITHUB_OIDC_PROVIDER_URL}:aud`]: GITHUB_OIDC_AUDIENCE,
           },
           StringLike: {
-            [`${GITHUB_OIDC_PROVIDER_URL}:sub`]: sub,
+            [`${GITHUB_OIDC_PROVIDER_URL}:sub`]: [oldSub, sub],
           },
         },
         "sts:AssumeRoleWithWebIdentity",
