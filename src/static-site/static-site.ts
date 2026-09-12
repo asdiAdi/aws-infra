@@ -21,6 +21,7 @@ export interface StaticSiteProps {
     ownerId: string;
     repo: string;
     repoId: string;
+    branch: string;
   };
   /** Optional existing DynamoDB table name to register site outputs. Omit if unused. */
   tableName?: string;
@@ -322,6 +323,7 @@ class StaticSiteConstruct extends Construct {
       ownerId: string;
       repo: string;
       repoId: string;
+      branch: string;
     },
     deployPolicy: iam.ManagedPolicy,
   ): iam.Role {
@@ -329,7 +331,7 @@ class StaticSiteConstruct extends Construct {
     const GITHUB_OIDC_AUDIENCE = "sts.amazonaws.com";
 
     const oidcProviderArn = `arn:aws:iam::${awsId}:oidc-provider/token.actions.githubusercontent.com`;
-    const sub = `repo:${github.owner}@${github.ownerId}/${github.repo}@${github.repoId}:ref:refs/heads/main`;
+    const sub = `repo:${github.owner}@${github.ownerId}/${github.repo}@${github.repoId}:ref:refs/heads/${github.branch}`;
 
     const roleName = `github-deploy-${constructId
       .toLowerCase()
