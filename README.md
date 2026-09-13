@@ -13,14 +13,14 @@ npm install @asdi/aws-infra
 From your website project root:
 
 ```bash
-npx @asdi/aws-infra static-site
+npx @asdi/aws-infra init
+npx @asdi/aws-infra add static-website
+npx @asdi/aws-infra add sync
 ```
 
-This copies into your current directory (overwrites):
-
-- `infra/index.ts` — starter stack with generic placeholders.
-- `cdk.json` — contains `{ "app": "npx tsx infra/index.ts" }`.
-- `.github/workflows/` — deploy workflow
+- `init` creates `cdk.json` (`{ "app": "npx tsx infra/index.ts" }`) and installs `@asdi/aws-infra`, `aws-cdk-lib`, `tsx`.
+- `add static-website` copies `infra/static-website.ts` starter stack.
+- `add sync` copies `.github/workflows/sync.yml` deploy workflow.
 
 Then:
 
@@ -36,16 +36,19 @@ npx cdk deploy
 npx @asdi/aws-infra <command>
 
 Commands:
-  static-site   Scaffold static site.
-  list          List templates.
+  list          List templates and workflows.
+  init          Scaffold cdk.json and install dependencies.
+  add <name>    Add a template or workflow by name.
   help          Show help.
 ```
 
 Examples:
 
 ```bash
-npx @asdi/aws-infra static-site
 npx @asdi/aws-infra list
+npx @asdi/aws-infra init
+npx @asdi/aws-infra add static-website
+npx @asdi/aws-infra add sync --force
 ```
 
 Background:

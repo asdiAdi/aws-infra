@@ -1,4 +1,4 @@
-name: Deploy to AWS and Sync to S3 + CloudFront
+name: Deploy to AWS
 
 on:
   push:
@@ -38,12 +38,3 @@ jobs:
 
       - name: Run CDK Deploy
         run: npx cdk deploy --require-approval never
-
-      - name: Build the App
-        run: npm run build
-
-      - name: Sync static files to S3
-        run: aws s3 sync dist/ s3://${{ secrets.S3_BUCKET }} --delete
-
-      - name: Invalidate CloudFront Cache
-        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"

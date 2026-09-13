@@ -17,6 +17,6 @@
     "noEmit": true,
     "types": ["node", "jest"]
   },
-  "include": ["src"],
+  "include": ["src", "workflows", "templates"],
   "exclude": ["node_modules", "dist", "cdk.out"]
 }
