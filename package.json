@@ -28,8 +28,8 @@
   "files": [
     "dist",
     "bin",
-    "**/templates",
-    "**/workflows",
+    "templates",
+    "workflows",
     "LICENSE",
     "README.md"
   ],
