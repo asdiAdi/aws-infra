@@ -15,33 +15,60 @@ export interface StaticSiteProps {
   secondLevelDomain: string;
 }
 
+export interface StaticSiteWithCertProps extends StaticSiteProps {
+  hostedZone: route53.IHostedZone;
+  certificate: acm.ICertificate;
+}
+
+export type StaticSiteConstructProps =
+  StaticSiteProps | StaticSiteWithCertProps;
+
+function hasCert(
+  props: StaticSiteConstructProps,
+): props is StaticSiteWithCertProps {
+  return "hostedZone" in props && "certificate" in props;
+}
+
 export class StaticSite extends Construct {
   public readonly domainName: string;
   public readonly hostedZone: route53.IHostedZone;
-  public readonly certificate: acm.Certificate;
+  public readonly certificate: acm.ICertificate;
   public readonly bucket: s3.Bucket;
   public readonly distribution: cloudfront.Distribution;
   public readonly managedPolicy: iam.ManagedPolicy;
   public readonly aRecord: route53.ARecord;
   public readonly aaaaRecord: route53.AaaaRecord;
 
-  constructor(scope: Construct, id: string, props: StaticSiteProps) {
+  constructor(scope: Construct, id: string, props: StaticSiteConstructProps) {
     super(scope, id);
 
     this.domainName = `${props.subDomain}.${props.secondLevelDomain}`;
 
-    this.hostedZone = route53.HostedZone.fromLookup(
-      this,
-      "StaticSiteHostedZone",
-      {
-        domainName: props.secondLevelDomain,
-      },
-    );
+    if (hasCert(props)) {
+      this.hostedZone = props.hostedZone;
+      this.certificate = props.certificate;
+    } else {
+      const region = cdk.Stack.of(this).region;
+      if (region !== "us-east-1" && cdk.Token.isResolved(region)) {
+        throw new Error(
+          `StaticSite must be deployed to us-east-1 when no certificate is provided (got "${region}"). ` +
+            `CloudFront requires ACM certificates in us-east-1. Either move this stack to us-east-1, ` +
+            `or pass a pre-created certificate + hostedZone via StaticSiteWithCertProps.`,
+        );
+      }
+      this.hostedZone = route53.HostedZone.fromLookup(
+        this,
+        "StaticSiteHostedZone",
+        {
+          domainName: props.secondLevelDomain,
+        },
+      );
 
-    this.certificate = new acm.Certificate(this, "StaticSiteCertificate", {
-      domainName: this.domainName,
-      validation: acm.CertificateValidation.fromDns(this.hostedZone),
-    });
+      this.certificate = new acm.Certificate(this, "StaticSiteCertificate", {
+        domainName: this.domainName,
+        validation: acm.CertificateValidation.fromDns(this.hostedZone),
+      });
+    }
 
     this.bucket = new s3.Bucket(this, "StaticSiteBucket", {
       bucketName: this.domainName,

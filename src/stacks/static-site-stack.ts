@@ -1,8 +1,11 @@
-import { StaticSite, StaticSiteProps } from "../constructs/static-site";
+import {
+  StaticSite,
+  StaticSiteConstructProps,
+} from "../constructs/static-site";
 import { Construct } from "constructs";
 import * as cdk from "aws-cdk-lib";
 
-export interface StaticSiteStackProps extends cdk.StackProps, StaticSiteProps {}
+export type StaticSiteStackProps = cdk.StackProps & StaticSiteConstructProps;
 
 export class StaticSiteStack extends cdk.Stack {
   public readonly staticSite: StaticSite;
