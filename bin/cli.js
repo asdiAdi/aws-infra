@@ -14,14 +14,20 @@ function installDeps(cwd) {
   }
   console.log("Installing dependencies...");
   try {
-    execSync(`npm install ${DEPS.join(" ")} --force --no-audit --no-fund --loglevel=error`, {
-      cwd,
-      stdio: "pipe",
-    });
-    execSync(`npm install -D ${DEV_DEPS.join(" ")} --force --no-audit --no-fund --loglevel=error`, {
-      cwd,
-      stdio: "pipe",
-    });
+    execSync(
+      `npm install ${DEPS.join(" ")} --force --no-audit --no-fund --loglevel=error`,
+      {
+        cwd,
+        stdio: "pipe",
+      },
+    );
+    execSync(
+      `npm install -D ${DEV_DEPS.join(" ")} --force --no-audit --no-fund --loglevel=error`,
+      {
+        cwd,
+        stdio: "pipe",
+      },
+    );
     console.log("Dependencies installed.");
   } catch (err) {
     console.error("Failed to install dependencies.");
@@ -78,13 +84,17 @@ function listWorkflows() {
       });
     }
   }
-  out.sort((a, b) => a.name.localeCompare(b.name) || a.provider.localeCompare(b.provider));
+  out.sort(
+    (a, b) =>
+      a.name.localeCompare(b.name) || a.provider.localeCompare(b.provider),
+  );
   return out;
 }
 
 function cmdList() {
   const templates = listTemplateNames();
   const workflows = listWorkflows();
+  const tools = [{ name: "param", desc: "SSM Parameter Store sync" }];
 
   console.log("Templates:");
   if (templates.length === 0) {
@@ -98,19 +108,46 @@ function cmdList() {
     console.log("  (none)");
   } else {
     const width = Math.max(...workflows.map((w) => w.name.length));
-    for (const w of workflows) console.log(`  ${w.name.padEnd(width)}  ${w.provider}`);
+    for (const w of workflows)
+      console.log(`  ${w.name.padEnd(width)}  ${w.provider}`);
   }
+  console.log("");
+  console.log("Tools:");
+  const toolWidth = Math.max(...tools.map((t) => t.name.length));
+  for (const t of tools)
+    console.log(`  ${t.name.padEnd(toolWidth)}  ${t.desc}`);
+}
+
+function cmdParam(restArgs) {
+  let mod;
+  try {
+    mod = require("../dist/tools/param/index.js");
+  } catch (err) {
+    if (err && err.code === "MODULE_NOT_FOUND") {
+      console.error('param tool is not built. Run "npm run build" first.');
+      process.exit(1);
+    }
+    throw err;
+  }
+  return mod.main(restArgs).catch((err) => {
+    console.error(err && err.message ? err.message : err);
+    process.exit(1);
+  });
 }
 
 function copyFile(from, to, force) {
   if (fs.existsSync(to) && !force) {
-    console.warn(`Skipped ${path.relative(process.cwd(), to)} (already exists, use --force to overwrite).`);
+    console.warn(
+      `Skipped ${path.relative(process.cwd(), to)} (already exists, use --force to overwrite).`,
+    );
     return false;
   }
   const overwritten = fs.existsSync(to);
   fs.mkdirSync(path.dirname(to), { recursive: true });
   fs.copyFileSync(from, to);
-  console.log(`${overwritten ? "Overwrote" : "Created"} ${path.relative(process.cwd(), to)}.`);
+  console.log(
+    `${overwritten ? "Overwrote" : "Created"} ${path.relative(process.cwd(), to)}.`,
+  );
   return true;
 }
 
@@ -170,13 +207,15 @@ function cmdAdd(cwd, name, force) {
     process.exit(1);
   }
 
-  console.error(`Unknown template or workflow "${name}". Use "list" to see available names.`);
+  console.error(
+    `Unknown template or workflow "${name}". Use "list" to see available names.`,
+  );
   process.exit(1);
 }
 
 function printHelp() {
   console.log(
-    "Usage: npx @asdi/aws-infra <command> [options]\n\nCommands:\n  list          List templates and workflows\n  init          Scaffold cdk.json and install dependencies\n  add <name>    Add a template or workflow by name\n  help          Show this help\n\nOptions:\n  --force       Overwrite existing files\n  -h, --help    Show this help\n\nExamples:\n  npx @asdi/aws-infra list\n  npx @asdi/aws-infra init\n  npx @asdi/aws-infra add static-website\n  npx @asdi/aws-infra add sync --force",
+    "Usage: asdi <command> [options]\n\nCommands:\n  list          List templates, workflows and tools\n  init          Scaffold cdk.json and install dependencies\n  add <name>    Add a template or workflow by name\n  param <push|pull|delete> [options]  Sync .env files with SSM Parameter Store\n  help          Show this help\n\nOptions:\n  --force       Overwrite existing files (add/init) / required to delete params\n  -h, --help    Show this help\n\nExamples:\n  asdi list\n  asdi init\n  asdi add static-website\n  asdi add sync --force\n  asdi param push --prefix /myapp/prod --file .env\n  asdi param pull --prefix /myapp/prod --file .env --overwrite\n  asdi param delete --prefix /myapp/prod --force\n\nRun 'asdi param --help' for .env format and all param flags.",
   );
 }
 
@@ -187,6 +226,11 @@ function main() {
   const name = positional[1];
   const help = args.includes("--help") || args.includes("-h");
   const force = args.includes("--force");
+
+  if (cmd === "param") {
+    const restArgs = args.slice(args.indexOf("param") + 1);
+    return cmdParam(restArgs);
+  }
 
   if (help || cmd === "help" || cmd === undefined) {
     printHelp();
@@ -205,7 +249,9 @@ function main() {
 
   if (cmd === "add") {
     if (!name) {
-      console.error('Missing name. Usage: npx @asdi/aws-infra add <name> [--force]');
+      console.error(
+        "Missing name. Usage: npx @asdi/aws-infra add <name> [--force]",
+      );
       process.exit(1);
     }
     cmdAdd(process.cwd(), name, force);
