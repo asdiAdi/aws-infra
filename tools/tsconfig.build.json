@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "../dist/tools",
+    "rootDir": ".",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "inlineSources": false,
+    "inlineSourceMap": false,
+    "types": ["node"]
+  },
+  "include": ["param"],
+  "exclude": ["node_modules", "**/*.test.ts", "**/*.spec.ts"]
+}

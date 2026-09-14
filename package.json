@@ -16,7 +16,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "aws-infra": "bin/cli.js"
+    "asdi": "bin/cli.js"
   },
   "exports": {
     ".": {
@@ -48,8 +48,8 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "clean": "rm -rf dist *.tsbuildinfo",
-    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo tools/*.tsbuildinfo",
+    "build": "tsc -p tsconfig.build.json && tsc -p tools/tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "watch": "tsc -p tsconfig.build.json -w",
     "test": "jest --passWithNoTests",
@@ -58,6 +58,7 @@
     "pack:dry": "npm run build && npm pack --dry-run"
   },
   "dependencies": {
+    "@aws-sdk/client-ssm": "^3.1131.0",
     "aws-cdk-lib": "^2.267.0",
     "constructs": "^10.5.0"
   },
@@ -70,8 +71,8 @@
     "@swc/jest": "^0.2.39",
     "@types/jest": "^30",
     "@types/node": "^24.10.1",
-    "jest": "^30",
     "aws-cdk": "2.1140.0",
+    "jest": "^30",
     "tsx": "^4.23.0",
     "typescript": "~7.0.2"
   }

@@ -6,6 +6,7 @@ Reusable AWS CDK constructs for deployments.
 
 ```bash
 npm install @asdi/aws-infra
+npm i -g @asdi/aws-infra   # provides the `asdi` command
 ```
 
 ## Quickstart
@@ -13,9 +14,9 @@ npm install @asdi/aws-infra
 From your website project root:
 
 ```bash
-npx @asdi/aws-infra init
-npx @asdi/aws-infra add static-website
-npx @asdi/aws-infra add sync
+asdi init
+asdi add static-website
+asdi add sync
 ```
 
 - `init` creates `cdk.json` (`{ "app": "npx tsx infra/index.ts" }`) and installs `@asdi/aws-infra`, `aws-cdk-lib`, `tsx`.
@@ -33,22 +34,32 @@ npx cdk deploy
 ### CLI reference
 
 ```bash
-npx @asdi/aws-infra <command>
+asdi <command>
 
 Commands:
-  list          List templates and workflows.
+  list          List templates, workflows and tools.
   init          Scaffold cdk.json and install dependencies.
   add <name>    Add a template or workflow by name.
+  param <push|pull> [options]  Sync .env files with SSM Parameter Store.
   help          Show help.
 ```
 
 Examples:
 
 ```bash
-npx @asdi/aws-infra list
-npx @asdi/aws-infra init
-npx @asdi/aws-infra add static-website
-npx @asdi/aws-infra add sync --force
+asdi list
+asdi init
+asdi add static-website
+asdi add sync --force
+asdi param push --prefix /myapp/prod --file .env
+asdi param pull --prefix /myapp/prod --file .env --overwrite
+```
+
+Tools (`tools/param`):
+
+```bash
+asdi param push --prefix /myapp/prod --file .env   # global install
+npx asdi param push --prefix /myapp/prod --file .env   # local install
 ```
 
 Background:
