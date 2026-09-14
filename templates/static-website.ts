@@ -16,14 +16,15 @@ const site = new StaticSiteStack(app, "site", {
 
 new GithubDeploymentStack(app, "deploy", {
   ...env,
-  roleName: "",
+  roleName: "MyAppGithubDeploy", // unique IAM role name per account
   github: {
-    owner: "",
-    ownerId: "",
-    repo: "",
-    repoId: "",
-    branch: "",
-    environment: "",
+    owner: "my-org", // github.com/<owner>
+    ownerId: "123456", // api.github.com/orgs/<owner> -> id
+    repo: "my-app",
+    repoId: "789012", // api.github.com/repos/<owner>/<repo> -> id
+    branch: "main", // plain name; omit when `environment` is set
+    // environment: "prod"; switches trust to environment:<name>
   },
+  // Grants the GitHub role S3 sync + CloudFront invalidation for this site.
   managedPolicies: [site.staticSite.managedPolicy],
 });
