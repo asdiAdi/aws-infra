@@ -215,7 +215,7 @@ function cmdAdd(cwd, name, force) {
 
 function printHelp() {
   console.log(
-    "Usage: asdi <command> [options]\n\nCommands:\n  list          List templates, workflows and tools\n  init          Scaffold cdk.json and install dependencies\n  add <name>    Add a template or workflow by name\n  param <push|pull|delete> [options]  Sync .env files with SSM Parameter Store\n  help          Show this help\n\nOptions:\n  --force       Overwrite existing files (add/init) / required to delete params\n  -h, --help    Show this help\n\nExamples:\n  asdi list\n  asdi init\n  asdi add static-website\n  asdi add sync --force\n  asdi param push --prefix /myapp/prod --file .env\n  asdi param pull --prefix /myapp/prod --file .env --overwrite\n  asdi param delete --prefix /myapp/prod --force\n\nRun 'asdi param --help' for .env format and all param flags.",
+    "Usage: asdi <command> [options]\n\nCommands:\n  list          List templates, workflows and tools\n  init          Scaffold cdk.json and install dependencies\n  add <name>    Add a template or workflow by name\n  param <push|pull|delete> [options]  Sync .env files with SSM Parameter Store\n  help          Show this help\n\nOptions:\n  --force       Overwrite existing files (add/init) / required to delete params\n  -h, --help    Show this help\n\nExamples:\n  asdi list\n  asdi init\n  asdi add static-website\n  asdi add sync --force\n  asdi param push --file .env\n  asdi param pull --prefix /myapp --file .env --overwrite\n  asdi param delete --prefix /myapp/prod --force\n\nRun 'asdi param --help' for .env format and all param flags.",
   );
 }
 

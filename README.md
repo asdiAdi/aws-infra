@@ -40,7 +40,7 @@ Commands:
   list          List templates, workflows and tools.
   init          Scaffold cdk.json and install dependencies.
   add <name>    Add a template or workflow by name.
-  param <push|pull> [options]  Sync .env files with SSM Parameter Store.
+  param <push|pull|delete> [options]  Sync .env files with SSM Parameter Store.
   help          Show help.
 ```
 
@@ -51,15 +51,33 @@ asdi list
 asdi init
 asdi add static-website
 asdi add sync --force
-asdi param push --prefix /myapp/prod --file .env
-asdi param pull --prefix /myapp/prod --file .env --overwrite
+asdi param push --file .env
+asdi param pull --prefix /myapp --file .env --overwrite
 ```
+
+One `.env` holds multiple SSM prefixes:
+
+```bash
+# path: /myapp/prod
+# string
+A=42
+# secret
+C=23
+# path: /myapp/shared
+# list
+E=1,2,3
+```
+
+- `push` reads `# path:` sections from the file.
+- `pull --prefix /myapp` recursively downloads everything under `/myapp`
+  into `# path:` sections.
+- `delete --prefix /myapp/prod` deletes everything under that prefix.
 
 Tools (`tools/param`):
 
 ```bash
-asdi param push --prefix /myapp/prod --file .env   # global install
-npx asdi param push --prefix /myapp/prod --file .env   # local install
+asdi param push --file .env
+npx asdi param push --file .env
 ```
 
 Background:

@@ -3,63 +3,117 @@ import { parseArgs, main } from "./index";
 import { assertNotRoot, forceRequired, prefixDepth } from "./ssm";
 
 describe("param format", () => {
-  it("defaults to String without markers", () => {
-    const { params, warnings } = parseEnvFile("TEST=23\n");
-    expect(warnings).toEqual([]);
-    expect(params).toEqual([{ key: "TEST", value: "23", type: "String" }]);
-  });
-
-  it("applies section markers until next marker", () => {
+  it("parses multiple paths with type sections", () => {
     const content = [
+      "# path: /myapp/prod",
       "# string",
       "A=42",
-      "B=33",
+      "B=24",
       "# secret",
-      "C=32",
-      "D=11",
+      "C=23",
+      "# path: /myapp/shared",
       "# list",
       "E=1,2,3",
     ].join("\n");
+    const { params, warnings } = parseEnvFile(content);
+    expect(warnings).toEqual([]);
+    expect(params).toEqual([
+      { path: "/myapp/prod", key: "A", value: "42", type: "String" },
+      { path: "/myapp/prod", key: "B", value: "24", type: "String" },
+      { path: "/myapp/prod", key: "C", value: "23", type: "SecureString" },
+      { path: "/myapp/shared", key: "E", value: "1,2,3", type: "StringList" },
+    ]);
+  });
+
+  it("resets type to String on every path switch", () => {
+    const content = ["# path: /a", "# secret", "S=1", "# path: /b", "T=2"].join(
+      "\n",
+    );
     const { params } = parseEnvFile(content);
     expect(params).toEqual([
-      { key: "A", value: "42", type: "String" },
-      { key: "B", value: "33", type: "String" },
-      { key: "C", value: "32", type: "SecureString" },
-      { key: "D", value: "11", type: "SecureString" },
-      { key: "E", value: "1,2,3", type: "StringList" },
+      { path: "/a", key: "S", value: "1", type: "SecureString" },
+      { path: "/b", key: "T", value: "2", type: "String" },
     ]);
+  });
+
+  it("merges repeated paths and allows same key under different paths", () => {
+    const content = [
+      "# path: /a",
+      "K=1",
+      "# path: /b",
+      "K=2",
+      "# path: /a",
+      "J=3",
+    ].join("\n");
+    const { params, warnings } = parseEnvFile(content);
+    expect(warnings).toEqual([]);
+    expect(params).toEqual([
+      { path: "/a", key: "K", value: "1", type: "String" },
+      { path: "/b", key: "K", value: "2", type: "String" },
+      { path: "/a", key: "J", value: "3", type: "String" },
+    ]);
+  });
+
+  it("last duplicate (path,key) wins with warning", () => {
+    const content = ["# path: /a", "K=1", "K=2"].join("\n");
+    const { params, warnings } = parseEnvFile(content);
+    expect(params).toEqual([
+      { path: "/a", key: "K", value: "2", type: "String" },
+    ]);
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]).toMatch(/Duplicate key "K" under \/a/);
+  });
+
+  it("warns on empty path blocks", () => {
+    const content = ["# path: /empty", "# path: /a", "K=1"].join("\n");
+    const { params, warnings } = parseEnvFile(content);
+    expect(params.map((p) => p.key)).toEqual(["K"]);
+    expect(warnings.some((w) => w.includes('Empty path "/empty"'))).toBe(true);
   });
 
   it("supports export prefix, quotes and ignores comments", () => {
     const { params } = parseEnvFile(
-      ['export A="a b"', "B='x'", "# a comment", "", "C=y"].join("\n"),
+      ["# path: /a", 'export A="a b"', "B='x'", "# a comment", "", "C=y"].join(
+        "\n",
+      ),
     );
     expect(params).toEqual([
-      { key: "A", value: "a b", type: "String" },
-      { key: "B", value: "x", type: "String" },
-      { key: "C", value: "y", type: "String" },
+      { path: "/a", key: "A", value: "a b", type: "String" },
+      { path: "/a", key: "B", value: "x", type: "String" },
+      { path: "/a", key: "C", value: "y", type: "String" },
     ]);
   });
 
-  it("last duplicate wins with warning", () => {
-    const { params, warnings } = parseEnvFile("A=1\nA=2\n");
-    expect(params).toEqual([{ key: "A", value: "2", type: "String" }]);
-    expect(warnings.length).toBe(1);
+  it("rejects keys before any path, bad keys, bad paths and empty list items", () => {
+    expect(() => parseEnvFile("A=1\n")).toThrow(/before any "# path:"/);
+    expect(() => parseEnvFile("# string\nA=1\n")).toThrow(
+      /before any "# path:"/,
+    );
+    expect(() => parseEnvFile("# path: /a\nBAD/KEY=1")).toThrow(/invalid key/);
+    expect(() => parseEnvFile("# path:\n")).toThrow(/invalid "# path:"/);
+    expect(() => parseEnvFile("# path: /\n")).toThrow(/invalid "# path:"/);
+    expect(() => parseEnvFile("# path: /a\n# list\nE=1,,3")).toThrow(
+      /empty item/,
+    );
   });
 
-  it("rejects bad keys and empty list items", () => {
-    expect(() => parseEnvFile("BAD/KEY=1")).toThrow(/invalid key/);
-    expect(() => parseEnvFile("# list\nE=1,,3")).toThrow(/empty item/);
-  });
-
-  it("round-trips through emit grouped by type", () => {
+  it("round-trips through emit grouped by path then type", () => {
     const emitted = emitEnvFile([
-      { key: "B", value: "2", type: "StringList" },
-      { key: "A", value: "1", type: "String" },
-      { key: "S", value: "s", type: "SecureString" },
+      { path: "/myapp/shared", key: "B", value: "2", type: "StringList" },
+      { path: "/myapp/prod", key: "S", value: "s", type: "SecureString" },
+      { path: "/myapp/prod", key: "A", value: "1", type: "String" },
     ]);
+    expect(emitted).toContain("# path: /myapp/prod");
+    expect(emitted).toContain("# path: /myapp/shared");
+    expect(emitted.indexOf("# path: /myapp/prod")).toBeLessThan(
+      emitted.indexOf("# path: /myapp/shared"),
+    );
     const { params } = parseEnvFile(emitted);
-    expect(params.map((p) => p.key)).toEqual(["A", "S", "B"]);
+    expect(params).toEqual([
+      { path: "/myapp/prod", key: "A", value: "1", type: "String" },
+      { path: "/myapp/prod", key: "S", value: "s", type: "SecureString" },
+      { path: "/myapp/shared", key: "B", value: "2", type: "StringList" },
+    ]);
   });
 });
 
@@ -84,9 +138,12 @@ describe("param delete guards", () => {
 
   it("counts --force occurrences", () => {
     expect(parseArgs(["delete", "--prefix", "/a/b"]).forceCount).toBe(0);
-    expect(parseArgs(["delete", "--prefix", "/a/b", "--force"]).forceCount).toBe(1);
     expect(
-      parseArgs(["delete", "--prefix", "/prod", "--force", "--force"]).forceCount,
+      parseArgs(["delete", "--prefix", "/a/b", "--force"]).forceCount,
+    ).toBe(1);
+    expect(
+      parseArgs(["delete", "--prefix", "/prod", "--force", "--force"])
+        .forceCount,
     ).toBe(2);
   });
 
@@ -94,6 +151,12 @@ describe("param delete guards", () => {
     await expect(
       main(["delete", "--prefix", "/myapp/prod", "--file", ".env", "--force"]),
     ).rejects.toThrow(/takes no --file/);
+  });
+
+  it("rejects --prefix on push before any AWS call", async () => {
+    await expect(
+      main(["push", "--prefix", "/myapp/prod", "--file", ".env"]),
+    ).rejects.toThrow(/takes no --prefix/);
   });
 
   it("refuses / before any AWS call", async () => {

@@ -16,8 +16,8 @@ export function normalizePrefix(prefix: string): string {
   return p;
 }
 
-export function fullName(prefix: string, key: string): string {
-  return `${normalizePrefix(prefix)}/${key}`;
+export function fullName(path: string, key: string): string {
+  return `${normalizePrefix(path)}/${key}`;
 }
 
 // Delete safety guards. normalizePrefix("/") already throws, but with a
@@ -74,18 +74,18 @@ export interface PushResult {
 
 export async function pushParams(
   client: SSMClient,
-  prefix: string,
   params: FileParam[],
   opts: { overwrite: boolean; dryRun: boolean; log: (msg: string) => void },
 ): Promise<PushResult> {
-  const norm = normalizePrefix(prefix);
-  const sorted = [...params].sort((a, b) => a.key.localeCompare(b.key));
+  const sorted = [...params].sort(
+    (a, b) => a.path.localeCompare(b.path) || a.key.localeCompare(b.key),
+  );
   let put = 0;
   let skipped = 0;
   let failed = 0;
 
   for (const p of sorted) {
-    const name = `${norm}/${p.key}`;
+    const name = `${p.path}/${p.key}`;
     const dry = opts.dryRun ? "DRY-RUN " : "";
     if (opts.dryRun) {
       opts.log(`${dry}PUT ${name} (${p.type}, overwrite=${opts.overwrite})`);
@@ -140,11 +140,18 @@ export async function pullParams(
     );
     for (const p of res.Parameters ?? []) {
       if (!p.Name) continue;
-      const key = p.Name.startsWith(norm + "/")
-        ? p.Name.slice(norm.length + 1)
-        : p.Name;
-      if (!key || key.includes("/")) continue; // keep flat KEY=value shape
+      // Split on last "/": dir -> # path:, leaf -> KEY. This supports pulling
+      // a parent prefix (e.g. /myapp) into multiple # path: sections.
+      // Names equal to the prefix itself have no leaf key and are skipped.
+      if (!p.Name.startsWith(norm + "/") && p.Name !== norm) continue;
+      if (p.Name === norm) continue;
+      const slash = p.Name.lastIndexOf("/");
+      if (slash <= 0) continue;
+      const dir = p.Name.slice(0, slash);
+      const key = p.Name.slice(slash + 1);
+      if (!dir || !key || key.includes("/")) continue;
       out.push({
+        path: dir,
         key,
         value: p.Value ?? "",
         type: ssmTypeToFileType(p.Type, p.Name),
@@ -153,7 +160,9 @@ export async function pullParams(
     nextToken = res.NextToken;
   } while (nextToken);
 
-  return out.sort((a, b) => a.key.localeCompare(b.key));
+  return out.sort(
+    (a, b) => a.path.localeCompare(b.path) || a.key.localeCompare(b.key),
+  );
 }
 
 // Phase 1 of delete: full recursive name list (all pages) before any write.

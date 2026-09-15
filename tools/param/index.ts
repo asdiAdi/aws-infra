@@ -1,9 +1,10 @@
 // param tool (run as: asdi param ...).
 // Sync .env files with AWS SSM Parameter Store (Standard tier only).
+// Multi-path files: one .env holds multiple SSM prefixes via "# path:".
 //
 // Usage:
-//   asdi param push --prefix /myapp/prod [--file .env] [--region r] [--overwrite] [--dry-run]
-//   asdi param pull --prefix /myapp/prod --file .env [--region r] [--overwrite] [--dry-run]
+//   asdi param push [--file .env] [--region r] [--overwrite] [--dry-run]
+//   asdi param pull --prefix /myapp --file .env [--region r] [--overwrite] [--dry-run]
 //   asdi param delete --prefix /myapp/prod [--region r] --force [--dry-run]
 
 import * as fs from "node:fs";
@@ -21,17 +22,17 @@ import {
 } from "./ssm";
 
 export const PARAM_HELP = `Usage:
-  asdi param push --prefix <path> [--file <env>] [--region <r>] [--overwrite] [--dry-run]
+  asdi param push [--file <env>] [--region <r>] [--overwrite] [--dry-run]
   asdi param pull --prefix <path> --file <env> [--region <r>] [--overwrite] [--dry-run]
   asdi param delete --prefix <path> [--region <r>] --force [--dry-run]
 
 Commands:
-  push          Upload .env file to SSM (default --file .env)
-  pull          Download SSM prefix to .env file
+  push          Upload .env file to SSM
+  pull          Download SSM prefix to .env file with "# path:" sections
   delete        Delete ALL params under prefix (irreversible, requires --force)
 
 Options:
-  --prefix      Required. e.g. /myapp/prod
+  --prefix      pull/delete: required parent prefix, e.g. /myapp
   --file        push: defaults to .env | pull: required output path
   --region      Optional. Precedence: --region > AWS_REGION > AWS config/chain
   --overwrite   push: overwrite existing params | pull: overwrite existing file
@@ -42,10 +43,10 @@ Options:
 ${ENV_FORMAT_HELP}
 
 Examples:
-  asdi param push --prefix /myapp/prod --file .env
-  asdi param push --prefix /myapp/prod --overwrite --dry-run
-  asdi param pull --prefix /myapp/prod --file .env
-  asdi param pull --prefix /myapp/prod --file .env --overwrite --region eu-central-1
+  asdi param push --file .env
+  asdi param push --overwrite --dry-run
+  asdi param pull --prefix /myapp --file .env
+  asdi param pull --prefix /myapp --file .env --overwrite --region eu-central-1
   asdi param delete --prefix /myapp/prod --dry-run
   asdi param delete --prefix /myapp/prod --force`;
 
@@ -97,7 +98,9 @@ export function parseArgs(argv: string[]): Args {
 }
 
 async function cmdPush(a: Args): Promise<void> {
-  const prefix = normalizePrefix(a.prefix ?? "");
+  if (a.prefix !== undefined) {
+    throw new Error("push takes no --prefix.");
+  }
   const file = a.file ?? ".env";
   const abs = path.resolve(process.cwd(), file);
   if (!fs.existsSync(abs)) throw new Error(`File not found: ${file}`);
@@ -108,7 +111,7 @@ async function cmdPush(a: Args): Promise<void> {
     return;
   }
   const client = createClient(a.region);
-  const res = await pushParams(client, prefix, params, {
+  const res = await pushParams(client, params, {
     overwrite: a.overwrite,
     dryRun: a.dryRun,
     log: (m) => console.log(m),
@@ -141,7 +144,7 @@ async function cmdPull(a: Args): Promise<void> {
     console.warn(`warn: no parameters under ${prefix}; writing empty file.`);
   fs.mkdirSync(path.dirname(abs), { recursive: true });
   fs.writeFileSync(abs, content, "utf8");
-  for (const p of params) console.log(`✔ GET ${prefix}/${p.key} (${p.type})`);
+  for (const p of params) console.log(`✔ GET ${p.path}/${p.key} (${p.type})`);
   console.log(`Done: ${params.length} pulled -> ${a.file}`);
 }
 
