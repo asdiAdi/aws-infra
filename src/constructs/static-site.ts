@@ -37,6 +37,14 @@ export interface StaticSiteProps {
    * @see {@link StaticSite.hostedZone}
    */
   secondLevelDomain: string;
+
+  /**
+   * Serve `/index.html` for S3 403/404 errors.
+   * Enable for SPAs with client-side routing.
+   *
+   * @default false
+   */
+  spaFallback?: boolean;
 }
 
 /**
@@ -184,6 +192,25 @@ export class StaticSite extends Construct {
       autoDeleteObjects: true,
     });
 
+    // SPA routes don't map to S3 objects, so serve index.html instead of 403/404.
+    const errorResponses: cloudfront.ErrorResponse[] | undefined =
+      props.spaFallback
+        ? [
+            {
+              httpStatus: 403,
+              responseHttpStatus: 200,
+              responsePagePath: "/index.html",
+              ttl: cdk.Duration.seconds(0),
+            },
+            {
+              httpStatus: 404,
+              responseHttpStatus: 200,
+              responsePagePath: "/index.html",
+              ttl: cdk.Duration.seconds(0),
+            },
+          ]
+        : undefined;
+
     this.distribution = new cloudfront.Distribution(
       this,
       "StaticSiteDistribution",
@@ -206,6 +233,7 @@ export class StaticSite extends Construct {
         priceClass: cloudfront.PriceClass.PRICE_CLASS_200,
         httpVersion: cloudfront.HttpVersion.HTTP2_AND_3,
         minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
+        errorResponses,
       },
     );
 
