@@ -210,6 +210,7 @@ export class StaticSite extends Construct {
     );
 
     this.managedPolicy = new iam.ManagedPolicy(this, "StaticSitePolicy", {
+      managedPolicyName: `${this.domainName}-SyncPolicy`,
       description:
         "Scoped deployment permissions for s3 sync and cloudfront cache invalidation",
       statements: [
