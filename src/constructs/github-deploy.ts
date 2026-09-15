@@ -16,7 +16,7 @@ import { Construct } from "constructs";
  * }
  * ```
  */
-export interface GithubRepositoryIdentity {
+export interface GithubRepoIdentity {
   /** GitHub org or user login, e.g. `"my-org"`. */
   owner: string;
   /**
@@ -43,20 +43,20 @@ export interface GithubRepositoryIdentity {
 }
 
 /**
- * Input properties for {@link GithubDeployRole}.
+ * Input properties for {@link GithubDeploy}.
  *
  * @example
  * ```ts
- * new GithubDeployRole(this, "Deploy", {
+ * new GithubDeploy(this, "Deploy", {
  *   roleName: "MyAppGithubDeploy",
  *   github: { owner: "my-org", ownerId: "123456", repo: "my-app", repoId: "789012", branch: "main" },
  *   managedPolicies: [site.managedPolicy],
  * });
  * ```
  */
-export interface GithubDeployRoleProps {
+export interface GithubDeployProps {
   /** Which GitHub repo (and branch or environment) may assume the role. */
-  github: GithubRepositoryIdentity;
+  github: GithubRepoIdentity;
   /** Physical IAM role name, e.g. `"MyAppGithubDeploy"`. Must be unique per account. */
   roleName: string;
   /**
@@ -85,7 +85,7 @@ export interface GithubDeployRoleProps {
  *
  * @example
  * ```ts
- * new GithubDeployRole(this, "Deploy", {
+ * new GithubDeploy(this, "Deploy", {
  *   roleName: "MyAppGithubDeploy",
  *   github: { owner: "my-org", ownerId: "123456", repo: "my-app", repoId: "789012", branch: "main" },
  *   managedPolicies: [site.managedPolicy],
@@ -98,16 +98,16 @@ export interface GithubDeployRoleProps {
  * - the `arn:aws:iam::<account>:policy/GithubCdkDeploy` managed policy.
  * Synth/deploy fails if either is missing.
  */
-export class GithubDeployRole extends Construct {
+export class GithubDeploy extends Construct {
   /** The federated deploy role GitHub Actions assumes. */
   public readonly role: iam.Role;
 
   /**
    * @param scope - Parent construct, usually a `Stack`.
    * @param id - Construct ID unique within `scope`.
-   * @param props - See {@link GithubDeployRoleProps}.
+   * @param props - See {@link GithubDeployProps}.
    */
-  constructor(scope: Construct, id: string, props: GithubDeployRoleProps) {
+  constructor(scope: Construct, id: string, props: GithubDeployProps) {
     super(scope, id);
     const {
       github,
@@ -135,7 +135,7 @@ export class GithubDeployRole extends Construct {
       `arn:aws:iam::${account}:policy/GithubCdkDeploy`,
     );
 
-    this.role = new iam.Role(this, "GithubDeployRole", {
+    this.role = new iam.Role(this, "GithubDeploy", {
       roleName,
       description: `GitHub Actions deploy role for (${owner}/${repo})`,
       assumedBy: new iam.FederatedPrincipal(
