@@ -1,4 +1,4 @@
-import { StaticSiteStack, GithubDeploymentStack } from "@asdi/aws-infra";
+import { StaticSiteStack, GithubDeployStack } from "@asdi/aws-infra";
 import * as cdk from "aws-cdk-lib";
 
 const app = new cdk.App();
@@ -14,7 +14,7 @@ const site = new StaticSiteStack(app, "site", {
   subDomain: "www",
 });
 
-new GithubDeploymentStack(app, "deploy", {
+new GithubDeployStack(app, "deploy", {
   ...env,
   roleName: "MyAppGithubDeploy", // unique IAM role name per account
   github: {
