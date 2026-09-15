@@ -4,8 +4,10 @@ import * as cdk from "aws-cdk-lib";
 const app = new cdk.App();
 
 const env = {
-  account: process.env.CDK_DEFAULT_ACCOUNT ?? "",
-  region: "us-east-1", //default,
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT ?? "",
+    region: "us-east-1", //default,
+  },
 };
 
 const site = new StaticSiteStack(app, "site", {
