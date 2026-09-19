@@ -39,24 +39,15 @@ jobs:
       - name: Deploy Stack
         run: npm run deploy
 
-      - name: Fetch github-action param from SSM
-        run: |
-          aws ssm get-parameters-by-path \
-            --path "/solar-tracker/github-action/dev/" \
-            --with-decryption \
-            --recursive \
-            --query "Parameters[*].[Name,Value]" \
-            --output text | while IFS=$'\t' read -r name value; do
-              key=$(basename "$name")
-              echo "::add-mask::$value"
-              echo "$key=$value" >> "$GITHUB_ENV"
-            done
-
       - name: Build the App
         run: npm run build
 
       - name: Sync static files to S3
-        run: aws s3 sync dist/ s3://$S3_BUCKET --delete
+        run: |
+          S3_BUCKET=$(aws ssm get-parameter --name "/path/to/ssm/" --query Parameter.Value --output text)
+          aws s3 sync dist/ s3://$S3_BUCKET --delete
 
       - name: Invalidate CloudFront Cache
-        run: aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"j
+        run: |
+          CLOUDFRONT_DISTRIBUTION_ID=$(aws ssm get-parameter --name "/path/to/ssm/" --query Parameter.Value --output text)
+          aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"
