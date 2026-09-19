@@ -36,8 +36,8 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Run CDK Deploy
-        run: npx cdk deploy --require-approval never
+      - name: Deploy Stack
+        run: npm run deploy
 
       - name: Fetch github-action param from SSM
         run: |
