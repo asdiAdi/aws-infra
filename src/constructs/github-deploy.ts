@@ -73,6 +73,24 @@ export interface GithubDeployProps {
    */
   inlinePolicyStatements?: iam.PolicyStatement[];
   /**
+   * SSM parameter path prefixes the role may read.
+   *
+   * Each entry must be an absolute parameter path, e.g. `"/myapp/prod"`.
+   * Grants:
+   * `ssm:GetParameter`, `ssm:GetParameters`, and
+   * `ssm:GetParametersByPath` on
+   * `arn:aws:ssm:{region}:{account}:parameter{prefix}` and
+   * `arn:aws:ssm:{region}:{account}:parameter{prefix}/*`,
+   * scoped to this stack's region and account.
+   *
+   * @example `["/myapp/prod"]`
+   * @default []
+   * @remarks
+   * Reading `SecureString` parameters also requires `kms:Decrypt` on the
+   * relevant KMS key. Pass that separately via `inlinePolicyStatements`.
+   */
+  ssmParameterPrefixes?: string[];
+  /**
    * Maximum CLI/API session length for the assumed role.
    *
    * @default cdk.Duration.hours(2)
@@ -113,12 +131,14 @@ export class GithubDeploy extends Construct {
       github,
       roleName,
       managedPolicies,
-      inlinePolicyStatements,
-      maxSessionDuration,
+      inlinePolicyStatements = [],
+      ssmParameterPrefixes = [],
+      maxSessionDuration = cdk.Duration.hours(2),
     } = props;
 
     const { owner, ownerId, repo, repoId, branch, environment } = github;
     const account = cdk.Stack.of(this).account;
+    const region = cdk.Stack.of(this).region;
 
     const GITHUB_OIDC_PROVIDER_URL = "token.actions.githubusercontent.com";
     const GITHUB_OIDC_AUDIENCE = "sts.amazonaws.com";
@@ -149,12 +169,33 @@ export class GithubDeploy extends Construct {
         "sts:AssumeRoleWithWebIdentity",
       ),
       managedPolicies: [deployPolicy, ...(managedPolicies ?? [])],
-      maxSessionDuration: maxSessionDuration ?? cdk.Duration.hours(2),
+      maxSessionDuration: maxSessionDuration,
     });
 
-    if (inlinePolicyStatements && inlinePolicyStatements.length > 0) {
-      for (let i = 0; i < inlinePolicyStatements.length; i++) {
-        this.role.addToPolicy(inlinePolicyStatements[i]);
+    const statements = [...inlinePolicyStatements];
+
+    if (ssmParameterPrefixes.length > 0) {
+      const ssmPolicy = new iam.PolicyStatement({
+        sid: "AllowSsmParameterRead",
+        actions: [
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath",
+        ],
+        resources: ssmParameterPrefixes.flatMap((p) => {
+          const normalized = p.replace(/\/\*$/, "");
+          return [
+            `arn:aws:ssm:${region}:${account}:parameter${normalized}`,
+            `arn:aws:ssm:${region}:${account}:parameter${normalized}/*`,
+          ];
+        }),
+      });
+      statements.push(ssmPolicy);
+    }
+
+    if (statements.length > 0) {
+      for (let i = 0; i < statements.length; i++) {
+        this.role.addToPolicy(statements[i]);
       }
     }
   }
