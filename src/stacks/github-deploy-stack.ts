@@ -5,7 +5,7 @@ import { Construct } from "constructs";
 
 /**
  * Stack props: standard {@link cdk.StackProps} (`env.account/region`) plus
- * {@link GithubDeployProps} (`github`, `roleName`, ...).
+ * {@link GithubDeployProps} (`github`, `roleName`, `ssmParameterPrefixes`, ...).
  */
 export interface GithubDeployStackProps
   extends cdk.StackProps, GithubDeployProps {}
@@ -21,6 +21,7 @@ export interface GithubDeployStackProps
  *   roleName: "MyAppGithubDeploy",
  *   github: { owner: "my-org", ownerId: "123456", repo: "my-app", repoId: "789012", branch: "main" },
  *   managedPolicies: [site.staticSite.managedPolicy],
+ *   ssmParameterPrefixes: ["/myapp/prod"],
  * });
  * ```
  *
@@ -28,6 +29,8 @@ export interface GithubDeployStackProps
  * Requires the account's GitHub OIDC provider and the
  * `GithubCdkDeploy` managed policy to pre-exist (see
  * {@link GithubDeploy}).
+ * `ssmParameterPrefixes` grants SSM read access scoped to this stack's region and account;
+ * {@link GithubDeployProps.ssmParameterPrefixes}).
  */
 export class GithubDeployStack extends cdk.Stack {
   /** The composed {@link GithubDeploy} construct. */
