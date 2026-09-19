@@ -15,8 +15,10 @@ export type StaticSiteStackProps = cdk.StackProps & StaticSiteConstructProps;
  * @example Auto-provisioned (stack in `us-east-1`).
  * ```ts
  * const site = new StaticSiteStack(app, "Site", {
- *   account: process.env.CDK_DEFAULT_ACCOUNT,
- *   region: "us-east-1", // CloudFront ACM certs must live in us-east-1
+ *   env: {
+ *     account: process.env.CDK_DEFAULT_ACCOUNT,
+ *     region: "us-east-1", // CloudFront ACM certs must live in us-east-1
+ *   }
  *   secondLevelDomain: "example.com",
  *   subDomain: "www",
  * });
@@ -25,8 +27,10 @@ export type StaticSiteStackProps = cdk.StackProps & StaticSiteConstructProps;
  * @example Bring-your-own zone + certificate (any region).
  * ```ts
  * const site = new StaticSiteStack(app, "Site", {
- *   account: process.env.CDK_DEFAULT_ACCOUNT,
- *   region: "eu-central-1",
+ *   env: {
+ *      account: process.env.CDK_DEFAULT_ACCOUNT,
+ *      region: "eu-central-1",
+ *   }
  *   secondLevelDomain: "example.com",
  *   subDomain: "www",
  *   hostedZone,
