@@ -33,17 +33,30 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Run CDK Deploy
         run: npx cdk deploy --require-approval never
+
+      - name: Fetch github-action param from SSM
+        run: |
+          aws ssm get-parameters-by-path \
+            --path "/solar-tracker/github-action/dev/" \
+            --with-decryption \
+            --recursive \
+            --query "Parameters[*].[Name,Value]" \
+            --output text | while IFS=$'\t' read -r name value; do
+              key=$(basename "$name")
+              echo "::add-mask::$value"
+              echo "$key=$value" >> "$GITHUB_ENV"
+            done
 
       - name: Build the App
         run: npm run build
 
       - name: Sync static files to S3
-        run: aws s3 sync dist/ s3://${{ secrets.S3_BUCKET }} --delete
+        run: aws s3 sync dist/ s3://$S3_BUCKET --delete
 
       - name: Invalidate CloudFront Cache
-        run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+        run: aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_DISTRIBUTION_ID --paths "/*"j
